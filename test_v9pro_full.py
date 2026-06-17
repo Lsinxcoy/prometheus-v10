@@ -5,7 +5,7 @@ import sys
 import time
 import traceback
 
-base = "E:/prometheus-v9pro/src/prometheus_v9pro"
+base = "E:/prometheus-v9pro/src/prometheus_v10"
 sys.path.insert(0, "E:/prometheus-v9pro/src")
 
 # ── Phase A: Syntax + Import Validation ────────────────────────────
@@ -40,7 +40,7 @@ def test_imports():
     errors = []
     for mod in new_modules:
         try:
-            __import__(f"prometheus_v9pro.{mod}")
+            __import__(f"prometheus_v10.{mod}")
         except Exception as e:
             errors.append(f"{mod}: {e}")
     assert not errors, f"Import errors: {errors}"
@@ -51,7 +51,7 @@ def test_imports():
 
 def test_harness_config():
     """B1: HarnessConfig fingerprint + diff."""
-    from prometheus_v9pro.schema import HarnessConfig, HarnessEdit, HookPoint
+    from prometheus_v10.schema import HarnessConfig, HarnessEdit, HookPoint
 
     hc1 = HarnessConfig(model_config={"model": "gpt-4"})
     hc2 = HarnessConfig(model_config={"model": "claude"})
@@ -67,10 +67,10 @@ def test_harness_config():
 
 def test_processor_pipeline():
     """B2: Processor pipeline execution."""
-    from prometheus_v9pro.harness_protocol import (
+    from prometheus_v10.harness_protocol import (
         ProcessorPipeline, PassThroughProcessor, TransformProcessor, InterceptProcessor,
     )
-    from prometheus_v9pro.schema import ProcessorEvent, HookPoint
+    from prometheus_v10.schema import ProcessorEvent, HookPoint
 
     pipeline = ProcessorPipeline(HookPoint.BEFORE_MODEL)
     pipeline.add(PassThroughProcessor())
@@ -87,8 +87,8 @@ def test_processor_pipeline():
 
 def test_seesaw_constraint():
     """B3: Seesaw constraint rejects regressing candidates."""
-    from prometheus_v9pro.harness_protocol import SeesawConstraint
-    from prometheus_v9pro.schema import HarnessEdit, HookPoint
+    from prometheus_v10.harness_protocol import SeesawConstraint
+    from prometheus_v10.schema import HarnessEdit, HookPoint
 
     seesaw = SeesawConstraint()
     seesaw.record_solved("task_1", 0.9)
@@ -114,8 +114,8 @@ def test_seesaw_constraint():
 
 def test_variant_pool():
     """B4: Variant pool fork on conflict."""
-    from prometheus_v9pro.harness_protocol import VariantPool, SeesawConstraint
-    from prometheus_v9pro.schema import HarnessConfig, HarnessEdit, HookPoint
+    from prometheus_v10.harness_protocol import VariantPool, SeesawConstraint
+    from prometheus_v10.schema import HarnessConfig, HarnessEdit, HookPoint
 
     pool = VariantPool(max_variants=3)
     pool.initialize(HarnessConfig())
@@ -139,8 +139,8 @@ def test_variant_pool():
 
 def test_adaptation_landscape():
     """B5: Adaptation landscape detects concentration risk."""
-    from prometheus_v9pro.harness_protocol import AdaptationLandscape
-    from prometheus_v9pro.schema import HarnessDimension
+    from prometheus_v10.harness_protocol import AdaptationLandscape
+    from prometheus_v10.schema import HarnessDimension
 
     al = AdaptationLandscape()
     # Record 5 same-type edits
@@ -160,8 +160,8 @@ def test_adaptation_landscape():
 
 def test_trace_store():
     """C1: Trace store CRUD + query."""
-    from prometheus_v9pro.trace_store import TraceRecord, TraceStore, StepRecord
-    from prometheus_v9pro.schema import HookPoint
+    from prometheus_v10.trace_store import TraceRecord, TraceStore, StepRecord
+    from prometheus_v10.schema import HookPoint
 
     store = TraceStore(capacity=10)
     record = TraceRecord(task_id="t1", harness_version="v1", outcome="pass")
@@ -176,8 +176,8 @@ def test_trace_store():
 
 def test_digester():
     """C2: Digester compresses traces to summaries."""
-    from prometheus_v9pro.trace_store import TraceRecord, TraceStore, Digester
-    from prometheus_v9pro.schema import HookPoint
+    from prometheus_v10.trace_store import TraceRecord, TraceStore, Digester
+    from prometheus_v10.schema import HookPoint
 
     store = TraceStore()
     store.append(TraceRecord(task_id="t1", outcome="fail", failure_category="tool_error",
@@ -194,9 +194,9 @@ def test_digester():
 
 def test_operational_mirror():
     """C3: Operational mirror detects pathologies."""
-    from prometheus_v9pro.operational_mirror import OperationalMirror, DeterministicGate
-    from prometheus_v9pro.schema import HarnessEdit, HookPoint, HarnessConfig
-    from prometheus_v9pro.trace_store import TraceStore
+    from prometheus_v10.operational_mirror import OperationalMirror, DeterministicGate
+    from prometheus_v10.schema import HarnessEdit, HookPoint, HarnessConfig
+    from prometheus_v10.trace_store import TraceStore
 
     mirror = OperationalMirror()
     store = TraceStore()
@@ -231,7 +231,7 @@ def test_operational_mirror():
 
 def test_chain_validator():
     """D1: 7-dimension validation chain."""
-    from prometheus_v9pro.chain_validator import ChainValidator
+    from prometheus_v10.chain_validator import ChainValidator
 
     cv = ChainValidator()
     # Valid code
@@ -246,7 +246,7 @@ def test_chain_validator():
 
 def test_forbidden_ops():
     """D2: 20 forbidden patterns detected."""
-    from prometheus_v9pro.forbidden_ops import ForbiddenOpsChecker
+    from prometheus_v10.forbidden_ops import ForbiddenOpsChecker
 
     checker = ForbiddenOpsChecker()
     # Should flag dangerous patterns
@@ -261,7 +261,7 @@ def test_forbidden_ops():
 
 def test_plan_validator():
     """D3: 3-layer plan validation."""
-    from prometheus_v9pro.plan_validator import PlanValidator, PlanStep
+    from prometheus_v10.plan_validator import PlanValidator, PlanStep
 
     pv = PlanValidator()
     # Clean plan
@@ -282,7 +282,7 @@ def test_plan_validator():
 
 def test_dynamic_security():
     """D4: 4-level security escalation."""
-    from prometheus_v9pro.dynamic_security import DynamicSecurity
+    from prometheus_v10.dynamic_security import DynamicSecurity
 
     ds = DynamicSecurity()
     assert ds.level == "low"
@@ -301,7 +301,7 @@ def test_dynamic_security():
 
 def test_weibull_per_layer():
     """E1: Per-layer Weibull parameters."""
-    from prometheus_v9pro.lifecycle import WeibullForgetting
+    from prometheus_v10.lifecycle import WeibullForgetting
 
     wf = WeibullForgetting()
     # SKILL should have longer half-life than EPISODIC
@@ -313,8 +313,8 @@ def test_weibull_per_layer():
 
 def test_aging_detector():
     """E2: 4-dimension aging detection."""
-    from prometheus_v9pro.lifecycle import AgingDetector
-    from prometheus_v9pro.schema import Node, NodePayload, NodeType, MemoryLayer
+    from prometheus_v10.lifecycle import AgingDetector
+    from prometheus_v10.schema import Node, NodePayload, NodeType, MemoryLayer
 
     ad = AgingDetector()
     # High maintenance aging: old node with no access
@@ -336,8 +336,8 @@ def test_aging_detector():
 
 def test_consolidation_pipeline():
     """E3: 4-level consolidation pipeline."""
-    from prometheus_v9pro.lifecycle import ConsolidationManager
-    from prometheus_v9pro.schema import NodeType
+    from prometheus_v10.lifecycle import ConsolidationManager
+    from prometheus_v10.schema import NodeType
     assert hasattr(ConsolidationManager, '_promote_working_to_episodic')
     assert hasattr(ConsolidationManager, '_promote_episodic_to_semantic')
     assert hasattr(ConsolidationManager, '_promote_semantic_to_procedural')
@@ -347,7 +347,7 @@ def test_consolidation_pipeline():
 
 def test_agent_registry():
     """E4: Agent registry + zombie reaping."""
-    from prometheus_v9pro.events import AgentRegistry
+    from prometheus_v10.events import AgentRegistry
 
     reg = AgentRegistry()
     reg.register("agent_1", ["search", "reason"])
@@ -370,7 +370,7 @@ def test_agent_registry():
 
 def test_organ_bridge():
     """E5: Organ-evolution bridge feedback loop."""
-    from prometheus_v9pro.organs import OrganEvolutionBridge
+    from prometheus_v10.organs import OrganEvolutionBridge
 
     bridge = OrganEvolutionBridge()
 
@@ -389,7 +389,7 @@ def test_organ_bridge():
 
 def test_embedder():
     """F1: Embedder with hash fallback."""
-    from prometheus_v9pro.embedder import Embedder
+    from prometheus_v10.embedder import Embedder
 
     # Use default dimension (384 for model, 384 for hash fallback)
     emb = Embedder(dimension=384, cache_size=10)
@@ -410,7 +410,7 @@ def test_embedder():
 
 def test_retry():
     """F2: Retry with exponential backoff."""
-    from prometheus_v9pro.retry import RetryManager, RetryPolicy
+    from prometheus_v10.retry import RetryManager, RetryPolicy
 
     policy = RetryPolicy(max_attempts=3, base_delay=0.01)
     rm = RetryManager(policy)
@@ -435,7 +435,7 @@ def test_retry():
 
 def test_ontology():
     """F3: Ontology generator discovers patterns."""
-    from prometheus_v9pro.ontology import OntologyGenerator
+    from prometheus_v10.ontology import OntologyGenerator
 
     og = OntologyGenerator()
     text = 'The "MemoryLayer" system uses CamelCase naming and has "episodic buffer" concepts.'
@@ -453,7 +453,7 @@ def test_ontology():
 
 def test_schema_harness_integration():
     """G1: Schema HarnessX types work with existing types."""
-    from prometheus_v9pro.schema import (
+    from prometheus_v10.schema import (
         Node, Genome, HarnessConfig, HarnessDimension, HookPoint,
         LAYER_TO_DIMENSIONS, DIMENSION_TO_LAYERS,
     )
@@ -471,8 +471,8 @@ def test_schema_harness_integration():
 
 def test_spaced_repetition():
     """G2: Spaced repetition boost works."""
-    from prometheus_v9pro.lifecycle import WeibullForgetting
-    from prometheus_v9pro.schema import Node, NodePayload, NodeType, MemoryLayer
+    from prometheus_v10.lifecycle import WeibullForgetting
+    from prometheus_v10.schema import Node, NodePayload, NodeType, MemoryLayer
 
     wf = WeibullForgetting()
     node = Node(

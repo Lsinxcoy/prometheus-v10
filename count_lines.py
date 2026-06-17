@@ -1,6 +1,6 @@
 import os
 
-base = "E:/prometheus-v9pro/src/prometheus_v9pro"
+base = "E:/prometheus-v9pro/src/prometheus_v10"
 total = 0
 by_dir = {}
 file_count = 0
