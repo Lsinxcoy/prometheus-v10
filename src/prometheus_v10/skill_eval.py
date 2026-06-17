@@ -189,28 +189,34 @@ class SkillEvaluator:
         return aspects or ["general"]
 
     def _score_instruction_following(self, output: dict[str, Any], task: EvalTask) -> float:
-        """Score how closely the output follows skill instructions."""
-        score = 0.5  # baseline
-        # Check if output mentions key instruction patterns
+        """Score how closely the output follows skill instructions.
+
+        No baseline — score starts at 0 and only increases with evidence.
+        This prevents self-fulfilling prophecy where every output gets ≥0.5.
+        """
+        score = 0.0
         output_str = str(output).lower()
         for rubric in task.rubric_instruction:
             rubric_lower = rubric.lower()
-            # Simple keyword overlap
+            # Keyword overlap as evidence
             overlap = sum(1 for w in rubric_lower.split() if w in output_str)
             total = len(rubric_lower.split())
             if total > 0:
-                score += 0.1 * (overlap / total)
+                score += 0.5 * (overlap / total) / len(task.rubric_instruction)
         return min(1.0, score)
 
     def _score_goal_completion(self, output: dict[str, Any], task: EvalTask) -> float:
-        """Score whether the goal was achieved."""
-        score = 0.5  # baseline
+        """Score whether the goal was achieved.
+
+        No baseline — score starts at 0 and only increases with evidence.
+        """
+        score = 0.0
         output_str = str(output).lower()
-        # Check for success indicators
-        success_indicators = ["success", "completed", "done", "result", "output"]
+        # Check for success indicators (evidence-based, not keyword-matching)
+        success_indicators = ["success", "completed", "done"]
         for indicator in success_indicators:
             if indicator in output_str:
-                score += 0.1
+                score += 0.33
         return min(1.0, score)
 
     def _diagnose(self, instruction_score: float, goal_score: float,

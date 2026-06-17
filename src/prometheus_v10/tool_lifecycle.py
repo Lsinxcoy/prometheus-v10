@@ -106,6 +106,7 @@ class ToolLifecycleManager:
         """Apply an atomic proposal bundle.
 
         Either all edits succeed, or none are applied.
+        Rollback restores ALL changes including newly created tools from COMPOSE/SPLIT.
         """
         # Phase 1: Validate all edits
         for edit in bundle.tool_edits:
@@ -113,19 +114,23 @@ class ToolLifecycleManager:
             if not valid:
                 return False, f"Bundle validation failed for {edit.target}: {reason}"
 
-        # Phase 2: Apply all edits (if any fail, roll back)
-        applied: list[tuple[LifecycleEdit, ToolSpec | None]] = []
-        for edit in bundle.tool_edits:
-            # Save snapshot before edit
-            snapshot = self._tools.get(edit.target)
-            applied.append((edit, snapshot))
+        # Phase 2: Snapshot state before applying
+        snapshot_keys_before = set(self._tools.keys())
+        snapshot_tools_before = {k: ToolSpec(name=v.name, interface=v.interface,
+                                              version=v.version, dependencies=list(v.dependencies),
+                                              is_active=v.is_active)
+                                 for k, v in self._tools.items()}
 
+        # Phase 3: Apply all edits
+        for edit in bundle.tool_edits:
             success, reason = self.apply_edit(edit)
             if not success:
-                # Roll back
-                for prev_edit, prev_snapshot in reversed(applied[:-1]):
-                    if prev_snapshot:
-                        self._tools[prev_edit.target] = prev_snapshot
+                # Full rollback: restore entire tools dict to pre-bundle state
+                self._tools = snapshot_tools_before
+                # Remove any keys that were added by COMPOSE/SPLIT
+                current_keys = set(self._tools.keys())
+                for key in current_keys - snapshot_keys_before:
+                    del self._tools[key]
                 return False, f"Bundle application failed at {edit.target}: {reason}"
 
         self._edit_history.extend(bundle.tool_edits)

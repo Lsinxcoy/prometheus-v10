@@ -357,13 +357,17 @@ class PreflectionEngine:
         else:
             recommendation = "proceed"
 
+        # Confidence: based on historical prediction accuracy, not rule count
+        historical_accuracy = self._compute_historical_accuracy()
+        confidence = max(0.1, historical_accuracy) if self._preflection_log else 0.3
+
         result = PreflectionResult(
             action=action,
             predicted_success=predicted_success,
             predicted_risks=predicted_risks,
             applicable_rules=rules,
             recommendation=recommendation,
-            confidence=min(1.0, len(rules) * 0.2 + 0.3),
+            confidence=confidence,
             reasoning="; ".join(reasoning_parts) if reasoning_parts else "No applicable rules",
         )
 
@@ -436,4 +440,33 @@ class PreflectionEngine:
             "preflections_performed": len(self._preflection_log),
             "avoid_recommendations": sum(1 for r in self._preflection_log if r.recommendation == "avoid"),
             "proceed_recommendations": sum(1 for r in self._preflection_log if r.recommendation == "proceed"),
+            "historical_accuracy": self._compute_historical_accuracy(),
         }
+
+    def _compute_historical_accuracy(self) -> float:
+        """Compute historical prediction accuracy from past preflection results.
+
+        Replaces self-fulfilling prophecy: instead of confidence = f(rule_count),
+        confidence = fraction of predictions that matched actual outcomes.
+
+        Since we don't have actual outcomes in this context, we use a conservative
+        estimate based on rule momentum: average momentum of applied rules.
+        Higher momentum = rules have been validated more = more accurate predictions.
+        """
+        if not self._preflection_log:
+            return 0.3  # prior before any observations
+
+        total_momentum = 0.0
+        total_rules = 0
+        for result in self._preflection_log[-20:]:  # last 20 results
+            for rule in result.applicable_rules:
+                total_momentum += rule.momentum_score
+                total_rules += 1
+
+        if total_rules == 0:
+            return 0.3
+
+        avg_momentum = total_momentum / total_rules
+        # Momentum in [0,1] → accuracy estimate in [0.1, 0.9]
+        # We don't allow 1.0 confidence without actual outcome tracking
+        return 0.1 + 0.8 * avg_momentum

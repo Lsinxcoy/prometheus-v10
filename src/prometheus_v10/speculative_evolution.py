@@ -1,4 +1,4 @@
-"""Prometheus V10 Speculative Evolution — Parallel fork + prefix conditioning + early termination.
+"""Prometheus V10 Speculative Evolution — Sequential fork + prefix conditioning + early termination.
 
 Inspired by SpecGen (arXiv:2606.17518):
 - Fork non-reasoning generations at trigger points in the reasoning trace
@@ -6,9 +6,15 @@ Inspired by SpecGen (arXiv:2606.17518):
 - Elastic resource pool: dynamic split between validation and profiling
 - Early termination: stop reasoning when satisfactory candidate emerges
 
+NOTE: Current implementation uses sequential fork dispatch (deque-based).
+True parallel execution (ThreadPool/asyncio.gather) would be needed for
+concurrent candidate generation, but the core SpecGen insight — speculative
+forking at trigger points with prefix conditioning — is implemented here.
+Parallel execution is an engineering optimization, not an algorithmic one.
+
 Key difference from V9PRO:
 - V9PRO engine.py: 12 layers execute serially, one mutation per layer
-- V10 speculative_evolution.py: parallel speculative forks + early termination
+- V10 speculative_evolution.py: speculative forks + early termination at trigger points
 """
 
 from __future__ import annotations
