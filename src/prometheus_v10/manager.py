@@ -44,7 +44,12 @@ class SafetyManager:
             self._log_violation(tool_name, "oep_suspect", "Clean experience poisoning suspected")
 
         # Step 3: Chain validation
-        validation = self._validator.validate(code, context)
+        # Low-risk actions (read/search/observe) use relaxed validation — skip syntax/completeness for non-code content
+        low_risk_actions = {"read", "search", "observe", "list", "status", "info", "help"}
+        if tool_name.lower() in low_risk_actions:
+            validation = self._validator.validate_relaxed(code, context)
+        else:
+            validation = self._validator.validate(code, context)
         if not validation.valid:
             self._log_violation(tool_name, "validation_failed", str(validation.issues))
             self._breaker.record_failure(tool_name)

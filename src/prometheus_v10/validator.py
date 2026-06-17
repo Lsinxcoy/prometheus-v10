@@ -74,6 +74,46 @@ class ChainValidator:
         overall_valid = all(s >= 0.2 for s in scores.values()) and not attack_chain
         return ValidationResult(valid=overall_valid, dimensions=scores, issues=issues, attack_chain_detected=attack_chain)
 
+    def validate_relaxed(self, code: str, context: dict[str, Any] | None = None) -> ValidationResult:
+        """Relaxed validation for low-risk actions (read/search/observe).
+
+        Skips syntax and completeness checks — non-code content (plain text,
+        queries, descriptions) should not be rejected for not being valid Python.
+        Safety check is still enforced.
+        """
+        scores: dict[str, float] = {}
+        issues: list[str] = []
+
+        # 1. Syntax — skip for non-code content
+        scores["syntax"] = 1.0  # assume valid for non-code
+
+        # 2. Semantic
+        lines = [l.strip() for l in code.split("\n") if l.strip()]
+        scores["semantic"] = min(1.0, max(0.2, len(lines) / 5))
+
+        # 3. Safety — still enforced
+        dangerous = ["os.system", "subprocess.call", "eval(", "exec(", "__import__", "rm -rf"]
+        safety_score = 1.0
+        for pattern in dangerous:
+            if pattern in code:
+                safety_score -= 0.2
+                issues.append(f"Dangerous pattern: {pattern}")
+        scores["safety"] = max(0.0, safety_score)
+
+        # 4. Completeness — skip for non-code content
+        scores["completeness"] = 1.0  # assume complete for non-code
+
+        # 5-7. Same as strict
+        scores["consistency"] = 0.8
+        scores["relevance"] = 0.7 if context else 0.5
+        boilerplate_indicators = ["pass", "...", "TODO", "FIXME"]
+        boilerplate_count = sum(1 for b in boilerplate_indicators if b in code)
+        scores["freshness"] = max(0.0, 1.0 - boilerplate_count * 0.2)
+
+        attack_chain = self._detect_attack_chain(code)
+        overall_valid = scores["safety"] >= 0.2 and not attack_chain
+        return ValidationResult(valid=overall_valid, dimensions=scores, issues=issues, attack_chain_detected=attack_chain)
+
     def _detect_attack_chain(self, code: str) -> bool:
         """Detect potential attack chains: multiple dangerous operations in sequence."""
         dangerous_count = 0
